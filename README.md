@@ -44,3 +44,8 @@ A robust, asynchronous WhatsApp Bot and CRM system built with Python (Flask) and
     ```bash
     python run_celery.py
     ```
+
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
