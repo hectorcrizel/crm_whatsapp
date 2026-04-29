@@ -1,0 +1,465 @@
+{% extends "base.html" %}
+
+{% block title %}Admin - ZAPNOC{% endblock %}
+
+{% block content %}
+<div class="container py-4 mb-5">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-0">Painel Administrativo</h2>
+            <p class="text-muted">Gestão completa do sistema.</p>
+        </div>
+        <a href="{{ url_for('chat.index') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i> Voltar ao Chat
+        </a>
+    </div>
+
+    <ul class="nav nav-tabs mb-4" id="adminTabs" role="tablist">
+        <li class="nav-item"><button class="nav-link active fw-bold" data-bs-toggle="tab" data-bs-target="#tab-general">Geral</button></li>
+        <li class="nav-item"><button class="nav-link fw-bold" data-bs-toggle="tab" data-bs-target="#tab-automation">Automação (Bot)</button></li>
+        <li class="nav-item"><button class="nav-link fw-bold" data-bs-toggle="tab" data-bs-target="#tab-queues">Filas</button></li>
+        <li class="nav-item"><button class="nav-link fw-bold" data-bs-toggle="tab" data-bs-target="#tab-users">Equipe</button></li>
+        <li class="nav-item"><button class="nav-link fw-bold" data-bs-toggle="tab" data-bs-target="#tab-quick">Respostas</button></li>
+    </ul>
+
+    <div class="tab-content" id="adminTabContent">
+
+        <div class="tab-pane fade show active" id="tab-general">
+            <form method="POST" action="{{ url_for('admin.settings') }}">
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <div class="card h-100 shadow-sm border-0 setting-card">
+                            <div class="card-header bg-transparent fw-bold text-success d-flex justify-content-between align-items-center">
+                                <span>WhatsApp (Evolution)</span>
+                                <span id="status-evolution" class="badge rounded-pill bg-secondary" style="width: 15px; height: 15px; display: inline-block;" title="Verificando..."></span>
+                            </div>
+                            <div class="card-body">
+                                <label class="small text-muted">URL API</label>
+                                <input type="url" name="EVOLUTION_API_URL" class="form-control mb-2" value="{{ config.get('EVOLUTION_API_URL', '') }}">
+                                <label class="small text-muted">Instância</label>
+                                <input type="text" name="INSTANCE_NAME" class="form-control mb-2" value="{{ config.get('INSTANCE_NAME', '') }}">
+                                <label class="small text-muted">API Key</label>
+                                <input type="password" name="EVOLUTION_API_KEY" class="form-control" value="{{ config.get('EVOLUTION_API_KEY', '') }}">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card h-100 shadow-sm border-0 setting-card">
+                            <div class="card-header bg-transparent fw-bold text-primary d-flex justify-content-between align-items-center">
+                                <span>Desk Manager</span>
+                                <span id="status-desk" class="badge rounded-pill bg-secondary" style="width: 15px; height: 15px; display: inline-block;" title="Verificando..."></span>
+                            </div>
+                            <div class="card-body">
+                                <label class="small text-muted">URL Desk</label>
+                                <input type="url" name="DESK_API_URL" class="form-control mb-2" value="{{ config.get('DESK_API_URL', 'https://api.desk.ms') }}">
+                                <label class="small text-muted">API Key</label>
+                                <input type="password" name="DESK_API_KEY" class="form-control mb-2" value="{{ config.get('DESK_API_KEY', '') }}">
+                                <label class="small text-muted">Public Key</label>
+                                <input type="password" name="DESK_PUBLIC_KEY" class="form-control mb-3" value="{{ config.get('DESK_PUBLIC_KEY', '') }}">
+                                
+                                <hr>
+                                <h6 class="fw-bold mb-3">Fluxo do Robô</h6>
+                                
+                                <label class="small text-muted">Mensagem: Pedir E-mail</label>
+                                <textarea name="DESK_MSG_ASK_EMAIL" class="form-control mb-2" rows="1">{{ config.get('DESK_MSG_ASK_EMAIL', 'Informe seu e-mail para abrir o chamado:') }}</textarea>
+                                
+                                <label class="small text-muted">Mensagem: Pedir Assunto</label>
+                                <textarea name="DESK_MSG_ASK_SUBJECT" class="form-control mb-2" rows="1">{{ config.get('DESK_MSG_ASK_SUBJECT', 'Qual o assunto do chamado?') }}</textarea>
+                                
+                                <label class="small text-muted">Mensagem: Pedir Descrição</label>
+                                <textarea name="DESK_MSG_ASK_DESC" class="form-control mb-2" rows="1">{{ config.get('DESK_MSG_ASK_DESC', 'Descreva o seu problema:') }}</textarea>
+                                
+                                <label class="small text-muted">Mensagem: Sucesso ({ticket} p/ o número)</label>
+                                <textarea name="DESK_MSG_SUCCESS" class="form-control mb-2" rows="1">{{ config.get('DESK_MSG_SUCCESS', 'Chamado aberto com sucesso! Número: {ticket}') }}</textarea>
+
+                                <label class="small text-muted">Mensagem: Não Encontrado</label>
+                                <textarea name="DESK_MSG_NOT_FOUND" class="form-control mb-2" rows="1">{{ config.get('DESK_MSG_NOT_FOUND', 'E-mail não encontrado. Transferindo para o suporte...') }}</textarea>
+
+                                <label class="small text-muted">Fila de Transbordo (Desk)</label>
+                                <select name="DESK_FAILOVER_QUEUE_ID" class="form-select mb-2">
+                                    <option value="">(Nenhuma)</option>
+                                    {% for q in queues %}
+                                    <option value="{{ q.id }}" {% if config.get('DESK_FAILOVER_QUEUE_ID') == q.id|string %}selected{% endif %}>{{ q.name }}</option>
+                                    {% endfor %}
+                                </select>
+
+                                <label class="small text-muted">Mensagem: Pós-Abertura (Escolha)</label>
+                                <textarea name="DESK_MSG_POST_CHOICE" class="form-control" rows="2">{{ config.get('DESK_MSG_POST_CHOICE', 'Como deseja prosseguir?\n1. Falar com atendente\n2. Aguardar retorno') }}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-end mt-3"><button type="submit" class="btn btn-primary">Salvar Geral</button></div>
+            </form>
+        </div>
+
+        <div class="tab-pane fade" id="tab-automation">
+            <form method="POST" action="{{ url_for('admin.settings') }}">
+                <div class="row g-4 mb-4">
+                    <div class="col-md-5">
+                        <div class="card h-100 shadow-sm border-0 setting-card">
+                            <div class="card-header bg-transparent fw-bold text-primary"><i class="fas fa-robot me-2"></i> Robô de Triagem</div>
+                            <div class="card-body">
+                                <div class="d-flex align-items-center justify-content-between p-3 mb-3 bg-light rounded border">
+                                    <div>
+                                        <label class="form-check-label fw-bold d-block" for="botEnabled">Ativar Bot</label>
+                                        <small class="text-muted" style="font-size: 0.75rem;">Menu automático em chats privados</small>
+                                    </div>
+                                    <div class="form-check form-switch m-0">
+                                        <input class="form-check-input" type="checkbox" name="BOT_ENABLED" id="botEnabled"
+                                               style="width: 3em; height: 1.5em;"
+                                               {% if config.get('BOT_ENABLED') == 'on' %}checked{% endif %}>
+                                    </div>
+                                </div>
+
+                                <div class="alert alert-info border-0 small">
+                                    <h6 class="fw-bold"><i class="fas fa-code me-1"></i> Variáveis:</h6>
+                                    <ul class="mb-0 ps-3">
+                                        <li><b>{nome}</b>: Cliente/Grupo</li>
+                                        <li><b>{protocolo}</b>: Nº do ticket</li>
+                                        <li><b>{fila}</b>: Fila destino</li>
+                                        <li><b>{atendente}</b>: Operador</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-7">
+                        <div class="card h-100 shadow-sm border-0 setting-card">
+                            <div class="card-header bg-transparent fw-bold text-success"><i class="fas fa-comment-dots me-2"></i> Personalizar Textos</div>
+                            <div class="card-body p-3">
+                                <div class="mb-2">
+                                    <label class="form-label fw-bold small text-muted mb-1">1. Boas-Vindas</label>
+                                    <textarea name="MSG_WELCOME" class="form-control form-control-sm" rows="1">{{ config.get('MSG_WELCOME', '') }}</textarea>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label fw-bold small text-muted mb-1">2. Sucesso (Protocolo)</label>
+                                    <textarea name="MSG_PROTOCOL_OPEN" class="form-control form-control-sm" rows="1">{{ config.get('MSG_PROTOCOL_OPEN', '') }}</textarea>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label fw-bold small text-danger mb-1">3. Fila de Espera (Cliente)</label>
+                                    <textarea name="MSG_QUEUE_WAIT" class="form-control form-control-sm" rows="1">{{ config.get('MSG_QUEUE_WAIT', '') }}</textarea>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label fw-bold small text-warning mb-1">4. Alerta Transbordo (Gerente Externo)</label>
+                                    <textarea name="MSG_FAILOVER_ALERT" class="form-control form-control-sm" rows="1">{{ config.get('MSG_FAILOVER_ALERT', '') }}</textarea>
+                                </div>
+                                <div class="mb-0">
+                                    <label class="form-label fw-bold small text-muted mb-1">5. Encerramento</label>
+                                    <textarea name="MSG_TICKET_CLOSED" class="form-control form-control-sm" rows="1">{{ config.get('MSG_TICKET_CLOSED', '') }}</textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm border-0 setting-card mb-4" style="border-left: 4px solid #6f42c1 !important;">
+                    <div class="card-header bg-transparent fw-bold" style="color: #6f42c1;">
+                        <i class="fas fa-users me-2"></i> Comportamento em Grupos (Citação @)
+                    </div>
+                    <div class="card-body p-3">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold small">Número do Bot (JID)</label>
+                                <input type="text" name="BOT_NUMBER" class="form-control form-control-sm" value="{{ config.get('BOT_NUMBER', '') }}" placeholder="Ex: 5551988776655">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold small">Fila de Destino</label>
+                                <select name="GROUP_MENTION_QUEUE_ID" class="form-select form-select-sm">
+                                    <option value="">-- Selecione a Fila --</option>
+                                    {% for q in queues %}
+                                    <option value="{{ q.id }}" {% if config.get('GROUP_MENTION_QUEUE_ID') == q.id|string %}selected{% endif %}>{{ q.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label fw-bold small">Mensagem de Resposta no Grupo</label>
+                                <textarea name="MSG_GROUP_MENTION_REPLY" class="form-control form-control-sm" rows="2">{{ config.get('MSG_GROUP_MENTION_REPLY', '') }}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-end mt-3 mb-4"><button type="submit" class="btn btn-primary px-4 shadow-sm">Salvar Configurações do Bot</button></div>
+            </form>
+
+            <hr class="my-5">
+
+            <div class="card setting-card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent fw-bold d-flex justify-content-between align-items-center">
+                    <span class="text-primary"><i class="fas fa-sitemap me-2"></i> Menus do Bot</span>
+                    <button class="btn btn-sm btn-primary" onclick="clearMenuForm(false)" data-bs-toggle="modal" data-bs-target="#menuModal">
+                        <i class="fas fa-plus me-1"></i> Adicionar
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light">
+                            <tr><th class="ps-3">Dígito</th><th>Opção</th><th>Destino</th><th class="text-end pe-3">Ações</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for opt in bot_options %}
+                            <tr>
+                                <td class="ps-3">
+                                    <span class="badge {% if opt.is_vip_only %}bg-dark{% else %}bg-secondary{% endif %}">{{ opt.digit }}</span>
+                                </td>
+                                <td>
+                                    <div class="fw-bold">
+                                        {{ opt.title }}
+                                        {% if opt.is_vip_only %}
+                                        <span class="badge bg-warning text-dark ms-2"><i class="fas fa-star me-1"></i> VIP/Oculto</span>
+                                        {% endif %}
+                                    </div>
+                                    {% if opt.description %}<small class="text-muted">{{ opt.description }}</small>{% endif %}
+                                </td>
+                                <td>
+                                    {% if opt.children %}<span class="badge bg-warning text-dark">Submenu</span>
+                                    {% elif opt.queue %}<span class="badge" style="background-color: {{ opt.queue.color }}; color: #fff;">{{ opt.queue.name }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end pe-3">
+                                    <button class="btn btn-sm btn-link text-decoration-none" onclick="editMenuOption('{{ opt.id }}', '{{ opt.digit }}', '{{ opt.title }}', '{{ opt.description or '' }}', '{{ opt.parent_id or '' }}', '{{ opt.queue_id or '' }}', '{{ opt.open_desk_ticket }}', `{{ opt.response_message or '' }}`, '{{ "True" if opt.is_vip_only else "False" }}')">Editar</button>
+                                    <form action="{{ url_for('admin.delete_bot_option', opt_id=opt.id) }}" method="POST" class="d-inline"><button class="btn btn-sm btn-link text-danger">Excluir</button></form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+
+
+            <div class="card setting-card border-0 shadow-sm mb-5">
+                <div class="card-header bg-transparent fw-bold d-flex justify-content-between align-items-center">
+                    <span class="text-success"><i class="fas fa-crown me-2"></i> Regras VIP</span>
+                    <button class="btn btn-sm btn-success fw-bold" onclick="clearVipForm()" data-bs-toggle="modal" data-bs-target="#vipModal">
+                        <i class="fas fa-plus me-1"></i> Nova Regra
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <tbody>
+                            {% for rule in bot_rules %}
+                            <tr>
+                                <td class="ps-3 fw-bold">"{{ rule.keyword }}"</td>
+                                <td>{% if rule.special_menu %}<span class="badge bg-dark">Menu: {{ rule.special_menu.title }}</span>{% elif rule.queue %}<span class="badge" style="background-color: {{ rule.queue.color }}; color: #fff;">Fila: {{ rule.queue.name }}</span>{% endif %}</td>
+                                <td class="text-end pe-3">
+                                    <button class="btn btn-sm btn-link" onclick="editVipRule('{{ rule.id }}', '{{ rule.keyword }}', '{{ rule.special_menu_id or '' }}', '{{ rule.queue_id or '' }}')"><i class="fas fa-edit"></i></button>
+                                    <form action="{{ url_for('admin.delete_bot_rule', rule_id=rule.id) }}" method="POST" class="d-inline"><button class="btn btn-sm btn-link text-danger"><i class="fas fa-trash"></i></button></form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="tab-queues">
+            <div class="text-end mb-3"><button class="btn btn-success shadow-sm" onclick="clearQueueForm()" data-bs-toggle="modal" data-bs-target="#queueModal">Nova Fila</button></div>
+            <div class="card setting-card border-0 shadow-sm">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light"><tr><th class="ps-3">Nome</th><th>Failover</th><th class="text-end pe-3">Ações</th></tr></thead>
+                    <tbody>
+                        {% for q in queues %}
+                        <tr>
+                            <td class="ps-3"><span class="badge rounded-pill me-2" style="background-color: {{ q.color }}; color: #fff;">&nbsp;</span> {{ q.name }}</td>
+                            <td>{% if q.failover_queue_id %}<span class="badge bg-secondary text-white">Fila Backup</span>{% elif q.failover_numbers %}<span class="badge bg-dark text-white">WhatsApp Ext.</span>{% else %}-{% endif %}</td>
+                            <td class="text-end pe-3">
+                                <button class="btn btn-sm btn-outline-primary" onclick="editQueue('{{ q.id }}', '{{ q.name }}', '{{ q.color }}', '{{ 'queue' if q.failover_queue_id else ('number' if q.failover_numbers else 'none') }}', '{{ q.failover_queue_id or q.failover_numbers or '' }}')">Editar</button>
+                                <form action="{{ url_for('admin.delete_queue', queue_id=q.id) }}" method="POST" class="d-inline"><button class="btn btn-sm btn-outline-danger ms-1">Excluir</button></form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="tab-users">
+            <div class="text-end mb-3"><button class="btn btn-success shadow-sm" onclick="clearUserForm()" data-bs-toggle="modal" data-bs-target="#userModal">Novo Usuário</button></div>
+            <div class="card setting-card border-0 shadow-sm">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light"><tr><th class="ps-3">Nome</th><th>Filas</th><th>Status</th><th class="text-end pe-3">Ações</th></tr></thead>
+                    <tbody>
+                        {% for u in users %}
+                        <tr>
+                            <td class="ps-3 fw-bold">{{ u.name }}</td>
+                            <td>{% for q in u.queues %}<span class="badge rounded-pill me-1" style="background-color: {{ q.color }}; color: #fff;">{{ q.name }}</span>{% else %}<span class="text-muted small">Nenhuma</span>{% endfor %}</td>
+                            <td>{% if u.status == 'online' %}<span class="badge bg-success">Online</span>{% else %}<span class="badge bg-secondary">Offline</span>{% endif %}</td>
+                            <td class="text-end pe-3">
+                                <button class="btn btn-sm btn-outline-primary" onclick="editUser('{{ u.id }}', '{{ u.name }}', '{{ u.email }}', '{{ u.is_admin }}', [{% for q in u.queues %}'{{ q.id }}',{% endfor %}])">Editar</button>
+                                <form action="{{ url_for('admin.delete_user', user_id=u.id) }}" method="POST" class="d-inline"><button class="btn btn-sm btn-outline-danger ms-1">Excluir</button></form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="tab-quick">
+             <div class="text-end mb-3"><button class="btn btn-success shadow-sm" onclick="clearQuickForm()" data-bs-toggle="modal" data-bs-target="#quickModal">Novo Modelo</button></div>
+             <div class="row g-3">
+                {% for qa in quick_answers %}
+                <div class="col-md-4">
+                    <div class="card shadow-sm border-0 h-100"><div class="card-body d-flex flex-column">
+                        <h6 class="fw-bold">{{ qa.title }}</h6>
+                        <p class="small text-muted flex-grow-1 text-truncate">{{ qa.text }}</p>
+                        <div class="text-end mt-2">
+                            <button class="btn btn-sm btn-link" onclick="editQuick('{{ qa.id }}', '{{ qa.title }}', '{{ qa.shortcut }}', `{{ qa.text }}`)">Editar</button>
+                            <form action="{{ url_for('admin.delete_quick_answer', qa_id=qa.id) }}" method="POST" class="d-inline"><button class="btn btn-sm btn-link text-danger">Excluir</button></form>
+                        </div>
+                    </div></div>
+                </div>
+                {% endfor %}
+             </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="menuModal" tabindex="-1"><div class="modal-dialog modal-lg"><form method="POST" action="{{ url_for('admin.save_bot_option') }}" class="modal-content"><div class="modal-header"><h5 class="modal-title fw-bold">Configurar Menu</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" name="option_id" id="optId"><div class="alert alert-warning d-flex align-items-center p-2 mb-3" id="vipAlert"><div class="form-check form-switch m-0"><input class="form-check-input" type="checkbox" name="is_vip_only" id="optIsVip"><label class="form-check-label fw-bold ms-2" for="optIsVip">Menu VIP (Oculto)</label></div></div><div class="row g-3"><div class="col-md-3"><label class="form-label small">Dígito</label><input type="text" name="digit" id="optDigit" class="form-control" required></div><div class="col-md-9"><label class="form-label small">Título</label><input type="text" name="title" id="optTitle" class="form-control" required></div><div class="col-12"><label class="form-label small">Descrição</label><input type="text" name="description" id="optDesc" class="form-control"></div><div class="col-12"><label class="form-label small">Menu Pai</label><select name="parent_id" id="optParent" class="form-select"><option value="">(Raiz)</option>{% for opt in bot_options %}<option value="{{ opt.id }}">{{ opt.digit }} - {{ opt.title }}</option>{% endfor %}</select></div><div class="col-md-6"><label class="fw-bold text-success small">Fila Destino</label><select name="queue_id" id="optQueue" class="form-select"><option value="">(Navegação)</option>{% for q in queues %}<option value="{{ q.id }}">{{ q.name }}</option>{% endfor %}</select></div><div class="col-md-6 pt-4"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" name="open_desk_ticket" id="optDesk"><label class="form-check-label" for="optDesk">Abrir DeskManager</label></div></div><div class="col-12"><label class="small">Mensagem Resposta</label><textarea name="response_message" id="optMsg" class="form-control" rows="2"></textarea></div></div></div><div class="modal-footer"><button type="submit" class="btn btn-primary">Salvar</button></div></form></div></div>
+<div class="modal fade" id="vipModal" tabindex="-1"><div class="modal-dialog"><form method="POST" action="{{ url_for('admin.save_bot_rule') }}" class="modal-content"><div class="modal-header"><h5 class="modal-title fw-bold">Regra VIP</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" name="rule_id" id="vipRuleId"><div class="mb-3"><label class="form-label fw-bold">Palavra-Chave (Nome)</label><input type="text" name="keyword" id="vipKeyword" class="form-control" required></div><div class="mb-3"><label class="small text-muted fw-bold">A: Ir para Menu Específico</label><select name="special_menu_id" id="vipMenuId" class="form-select"><option value="">-- Nenhum --</option>{% for opt in bot_options %}<option value="{{ opt.id }}">{{ opt.digit }} - {{ opt.title }}</option>{% endfor %}</select></div><div class="mb-3"><label class="small text-muted fw-bold">B: Ir para Fila Direta</label><select name="queue_id" id="vipQueueId" class="form-select"><option value="">-- Nenhuma --</option>{% for q in queues %}<option value="{{ q.id }}">{{ q.name }}</option>{% endfor %}</select></div></div><div class="modal-footer"><button type="submit" class="btn btn-success">Salvar Regra</button></div></form></div></div>
+<div class="modal fade" id="userModal" tabindex="-1"><div class="modal-dialog"><form method="POST" action="{{ url_for('admin.save_user') }}" class="modal-content"><div class="modal-header"><h5 class="modal-title">Usuário</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" name="user_id" id="userId"><div class="mb-3"><label class="small">Nome</label><input type="text" name="name" id="userName" class="form-control" required></div><div class="mb-3"><label class="small">Email</label><input type="email" name="email" id="userEmail" class="form-control" required></div><div class="mb-3"><label class="small">Senha</label><input type="password" name="password" class="form-control"></div><hr><label class="fw-bold small">Filas</label><div class="card p-2 border-0 bg-light" style="max-height:150px;overflow:auto;">{% for q in queues %}<div class="form-check"><input class="form-check-input queue-checkbox" type="checkbox" name="queue_ids" value="{{ q.id }}" id="q{{ q.id }}"><label class="form-check-label small" for="q{{ q.id }}">{{ q.name }}</label></div>{% endfor %}</div><div class="form-check form-switch mt-3"><input class="form-check-input" type="checkbox" name="is_admin" id="userIsAdmin"><label class="small">Admin</label></div></div><div class="modal-footer"><button type="submit" class="btn btn-primary">Salvar</button></div></form></div></div>
+<div class="modal fade" id="queueModal" tabindex="-1"><div class="modal-dialog"><form method="POST" action="{{ url_for('admin.save_queue') }}" class="modal-content"><div class="modal-header"><h5 class="modal-title">Fila</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" name="queue_id" id="queueId"><div class="mb-3"><label class="small">Nome</label><input type="text" name="name" id="queueName" class="form-control" required></div><div class="mb-3"><label class="small">Cor</label><input type="color" name="color" id="queueColor" class="form-control form-control-color"></div><hr><h6 class="text-danger fw-bold small">Failover</h6><div class="btn-group btn-group-sm w-100 mb-3"><input type="radio" class="btn-check" name="failover_type" id="ftNone" value="none" onchange="toggleFailover('none')" checked><label class="btn btn-outline-secondary" for="ftNone">Nada</label><input type="radio" class="btn-check" name="failover_type" id="ftQueue" value="queue" onchange="toggleFailover('queue')"><label class="btn btn-outline-secondary" for="ftQueue">Fila</label><input type="radio" class="btn-check" name="failover_type" id="ftNumber" value="number" onchange="toggleFailover('number')"><label class="btn btn-outline-secondary" for="ftNumber">WhatsApp</label></div><div id="divFailoverQueue" class="d-none"><select name="failover_queue_id" id="queueFailoverId" class="form-select form-select-sm"><option value="">Selecione...</option>{% for q in queues %}<option value="{{ q.id }}">{{ q.name }}</option>{% endfor %}</select></div><div id="divFailoverNumber" class="d-none"><textarea name="failover_numbers" id="queueFailoverNums" class="form-control form-control-sm" placeholder="Ex: 5551988887777"></textarea></div></div><div class="modal-footer"><button type="submit" class="btn btn-primary">Salvar</button></div></form></div></div>
+<div class="modal fade" id="quickModal" tabindex="-1"><div class="modal-dialog"><form method="POST" action="{{ url_for('admin.save_quick_answer') }}" class="modal-content"><div class="modal-header"><h5 class="modal-title">Resposta Rápida</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" name="qa_id" id="qaId"><div class="mb-3"><label class="small">Título</label><input type="text" name="title" id="qaTitle" class="form-control"></div><div class="mb-3"><label class="small">Atalho</label><input type="text" name="shortcut" id="qaShortcut" class="form-control"></div><div class="mb-3"><label class="small">Texto</label><textarea name="text" id="qaText" class="form-control" rows="3"></textarea></div></div><div class="modal-footer"><button type="submit" class="btn btn-primary">Salvar</button></div></form></div></div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // --- JS MENU ---
+    function editMenuOption(id, digit, title, desc, parentId, queueId, openDesk, msg, isVip) {
+        document.getElementById('optId').value = id;
+        document.getElementById('optDigit').value = digit;
+        document.getElementById('optTitle').value = title;
+        document.getElementById('optDesc').value = desc;
+        document.getElementById('optParent').value = parentId;
+        document.getElementById('optQueue').value = queueId;
+        document.getElementById('optDesk').checked = (openDesk === 'True');
+        document.getElementById('optMsg').value = msg;
+        document.getElementById('optIsVip').checked = (isVip === 'True');
+        new bootstrap.Modal(document.getElementById('menuModal')).show();
+    }
+    function clearMenuForm(isVipOnly) {
+        document.getElementById('optId').value = '';
+        document.getElementById('optDigit').value = '';
+        document.getElementById('optTitle').value = '';
+        document.getElementById('optDesc').value = '';
+        document.getElementById('optParent').value = '';
+        document.getElementById('optQueue').value = '';
+        document.getElementById('optDesk').checked = true;
+        document.getElementById('optMsg').value = '';
+        document.getElementById('optIsVip').checked = isVipOnly;
+    }
+    function editVipRule(id, keyword, menuId, queueId) {
+        document.getElementById('vipRuleId').value = id;
+        document.getElementById('vipKeyword').value = keyword;
+        document.getElementById('vipMenuId').value = menuId;
+        document.getElementById('vipQueueId').value = queueId;
+        new bootstrap.Modal(document.getElementById('vipModal')).show();
+    }
+    function clearVipForm() {
+        document.getElementById('vipRuleId').value = '';
+        document.getElementById('vipKeyword').value = '';
+        document.getElementById('vipMenuId').value = '';
+        document.getElementById('vipQueueId').value = '';
+    }
+    function editUser(id, name, email, isAdmin, userQueues) {
+        document.getElementById('userId').value = id;
+        document.getElementById('userName').value = name;
+        document.getElementById('userEmail').value = email;
+        document.getElementById('userIsAdmin').checked = (isAdmin === 'True');
+        document.querySelectorAll('.queue-checkbox').forEach(cb => cb.checked = false);
+        if(userQueues) userQueues.forEach(qid => {
+            const cb = document.querySelector(`.queue-checkbox[value="${qid}"]`);
+            if(cb) cb.checked = true;
+        });
+        new bootstrap.Modal(document.getElementById('userModal')).show();
+    }
+    function clearUserForm() {
+        document.getElementById('userId').value = '';
+        document.getElementById('userName').value = '';
+        document.getElementById('userEmail').value = '';
+        document.getElementById('userIsAdmin').checked = false;
+        document.querySelectorAll('.queue-checkbox').forEach(cb => cb.checked = false);
+    }
+    function toggleFailover(type) {
+        document.getElementById('divFailoverQueue').classList.add('d-none');
+        document.getElementById('divFailoverNumber').classList.add('d-none');
+        if (type === 'queue') document.getElementById('divFailoverQueue').classList.remove('d-none');
+        else if (type === 'number') document.getElementById('divFailoverNumber').classList.remove('d-none');
+    }
+    function editQueue(id, name, color, fType, fValue) {
+        document.getElementById('queueId').value = id;
+        document.getElementById('queueName').value = name;
+        document.getElementById('queueColor').value = color;
+        document.getElementById('ftNone').checked = true; toggleFailover('none');
+        document.getElementById('queueFailoverId').value = "";
+        document.getElementById('queueFailoverNums').value = "";
+        if (fType === 'queue') {
+            document.getElementById('ftQueue').checked = true; toggleFailover('queue');
+            document.getElementById('queueFailoverId').value = fValue;
+        } else if (fType === 'number') {
+            document.getElementById('ftNumber').checked = true; toggleFailover('number');
+            document.getElementById('queueFailoverNums').value = fValue;
+        }
+        new bootstrap.Modal(document.getElementById('queueModal')).show();
+    }
+    function clearQueueForm() {
+        document.getElementById('queueId').value = '';
+        document.getElementById('queueName').value = '';
+        document.getElementById('queueColor').value = '#00a884';
+        document.getElementById('ftNone').checked = true; toggleFailover('none');
+    }
+    function editQuick(id, title, shortcut, text) {
+        document.getElementById('qaId').value = id;
+        document.getElementById('qaTitle').value = title;
+        document.getElementById('qaShortcut').value = (shortcut === 'None' ? '' : shortcut);
+        document.getElementById('qaText').value = text;
+        new bootstrap.Modal(document.getElementById('quickModal')).show();
+    }
+    function clearQuickForm() {
+        document.getElementById('qaId').value = '';
+        document.getElementById('qaTitle').value = '';
+        document.getElementById('qaShortcut').value = '';
+        document.getElementById('qaText').value = '';
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        function checkStatus(service, elementId) {
+            fetch(`/admin/test_connection/${service}`)
+                .then(res => res.json())
+                .then(data => {
+                    let el = document.getElementById(elementId);
+                    if (data.status === 'ok') {
+                        el.className = "badge rounded-pill bg-success";
+                        el.title = "Conectado";
+                    } else {
+                        el.className = "badge rounded-pill bg-danger";
+                        el.title = "Erro: " + data.message;
+                    }
+                })
+                .catch(err => {
+                    let el = document.getElementById(elementId);
+                    el.className = "badge rounded-pill bg-danger";
+                    el.title = "Erro ao verificar conexão";
+                });
+        }
+        checkStatus('evolution', 'status-evolution');
+        checkStatus('desk', 'status-desk');
+    });
+</script>
+
+<style>
+    html, body { background-color: var(--bg-body); overflow-y: auto !important; }
+    .form-check-input:checked { background-color: #0d6efd !important; border-color: #0d6efd !important; }
+    body.dark-mode .setting-card, body.dark-mode .modal-content { background-color: var(--bg-sidebar); color: var(--text-primary); border: 1px solid var(--border-color) !important; }
+    body.dark-mode .bg-light { background-color: var(--bg-input) !important; color: var(--text-primary) !important; }
+    body.dark-mode .nav-tabs .nav-link { color: var(--text-secondary); }
+    body.dark-mode .nav-tabs .nav-link.active { background-color: var(--bg-sidebar); color: var(--accent-color); border-bottom-color: transparent; }
+</style>
+{% endblock %}

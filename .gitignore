@@ -1,0 +1,9 @@
+.env
+__pycache__/
+*.pyc
+app/static/uploads/*
+!app/static/uploads/.gitkeep
+cookies.txt
+server.pid
+*.db
+.idea/

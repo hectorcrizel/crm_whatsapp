@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Painel de Atendimento</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        body { height: 100vh; overflow: hidden; background-color: #e9ecef; }
+        .sidebar { width: 350px; background: white; border-right: 1px solid #ddd; display: flex; flex-direction: column; }
+        .chat-area { flex: 1; display: flex; flex-direction: column; background: #efe7dd; } /* Corzinha de WhatsApp */
+        .ticket-item { cursor: pointer; border-bottom: 1px solid #f1f1f1; padding: 15px; }
+        .ticket-item:hover { background-color: #f8f9fa; }
+        .ticket-item.active { background-color: #e8f0fe; }
+        .messages-box { flex: 1; overflow-y: auto; padding: 20px; }
+        .message { max-width: 70%; margin-bottom: 10px; padding: 10px 15px; border-radius: 10px; position: relative; }
+        .msg-contact { background: white; align-self: flex-start; border-top-left-radius: 0; }
+        .msg-operator { background: #d9fdd3; align-self: flex-end; border-top-right-radius: 0; margin-left: auto; }
+        .msg-bot { background: #f0f0f0; align-self: center; font-size: 0.85em; color: #666; border-radius: 20px; }
+    </style>
+</head>
+<body class="d-flex">
+
+    <div class="sidebar">
+        <div class="p-3 border-bottom bg-light d-flex justify-content-between align-items-center">
+            <strong><i class="bi bi-chat-dots-fill text-primary"></i> Tickets</strong>
+            <span class="badge bg-secondary">{{ user.name }}</span>
+        </div>
+        
+        <ul class="nav nav-tabs nav-fill" id="ticketTabs">
+            <li class="nav-item">
+                <a class="nav-link active" href="#" onclick="loadTickets('open')">Abertos</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#" onclick="loadTickets('pending')">Fila</a>
+            </li>
+        </ul>
+
+        <div id="ticketsList" style="overflow-y: auto; flex: 1;">
+            <p class="text-center mt-4 text-muted">Carregando...</p>
+        </div>
+    </div>
+
+    <div class="chat-area">
+        <div id="chatHeader" class="p-3 bg-white border-bottom d-flex justify-content-between align-items-center">
+            <span id="activeContactName" class="fw-bold">Selecione um ticket</span>
+            <button class="btn btn-sm btn-outline-danger d-none" id="btnCloseTicket">Encerrar</button>
+        </div>
+
+        <div id="messagesList" class="messages-box d-flex flex-column">
+            </div>
+
+        <div class="p-3 bg-light border-top">
+            <form id="sendForm" class="d-flex gap-2">
+                <input type="text" id="messageInput" class="form-control" placeholder="Digite sua mensagem..." disabled>
+                <button type="submit" class="btn btn-primary" id="btnSend" disabled>
+                    <i class="bi bi-send-fill"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        // JS Mínimo para testar carregamento
+        console.log("Painel carregado!");
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+	
+</body>
+</html>

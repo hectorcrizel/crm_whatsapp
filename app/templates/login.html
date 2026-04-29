@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Login - CRM WhatsApp</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f0f2f5; display: flex; align-items: center; justify-content: center; height: 100vh; }
+        .card { width: 100%; max-width: 400px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+    <div class="card p-4">
+        <h3 class="text-center mb-4">Nocquinho CRM</h3>
+        <div id="alert" class="alert alert-danger d-none"></div>
+        
+        <form id="loginForm">
+            <div class="mb-3">
+                <label>Email</label>
+                <input type="email" id="email" class="form-control" required value="admin@crm.com">
+            </div>
+            <div class="mb-3">
+                <label>Senha</label>
+                <input type="password" id="password" class="form-control" required value="admin123">
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Entrar</button>
+        </form>
+    </div>
+
+   <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const res = await fetch('/auth/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    // --- O SEGREDO ESTÁ AQUI: ---
+                    // Isso força o navegador a tratar o cookie que o servidor manda
+                    // (embora cookies HttpOnly geralmente vão automático, isso garante no mesmo domínio)
+                    // Mas o flask-login via fetch as vezes é chato.
+                    // Vamos manter simples primeiro, mas se falhar, o login comum (Form Data) seria melhor.
+                    // Tente apenas adicionar o corpo json como estava:
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok) {
+                    // Login OK, cookie gravado. Vai para o chat.
+                    window.location.href = '/chat';
+                } else {
+                    const alert = document.getElementById('alert');
+                    alert.textContent = data.error || 'Erro ao logar';
+                    alert.classList.remove('d-none');
+                }
+            } catch (error) {
+                console.error(error);
+            }
+        });
+    </script>
+</body>
+</html>

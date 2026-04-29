@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  # --- Banco de Dados PostgreSQL ---
+  db:
+    image: postgres:15-alpine
+    container_name: crm_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: crm_user
+      POSTGRES_PASSWORD: sua_senha_aqui
+      POSTGRES_DB: crm_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # --- Redis (Filas e Cache) ---
+  redis:
+    image: redis:alpine
+    container_name: crm_redis
+    restart: always
+    ports:
+      - "6379:6379"
+
+  # --- Adminer (Para você ver o banco visualmente - Opcional mas recomendado) ---
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - "8080:8080"
+
+volumes:
+  postgres_data:
